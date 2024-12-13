@@ -4,6 +4,7 @@ import numpy as np
 import skimage.io as io
 import matplotlib.pyplot as plt
 import math
+from pytesseract import pytesseract
 
 # Show Images
 
@@ -77,3 +78,62 @@ def wrapped_paper(width,height,points,image):
     warped_image = cv.warpPerspective(image, matrix, (width, height))
     return warped_image
         
+# def if_has_outer_edge(contours, image):
+#     has_outer_border = False  # Initialize as False
+    
+#     for contour in contours:
+#         x, y, w, h = cv.boundingRect(contour)
+#         print(w,h)
+#         if w > 0.9 * image.shape[1] and h > 0.9 * image.shape[0]:
+#             print("Outer border detected")
+#             has_outer_border = True
+#             break  # Stop checking further contours as we've found the outer border
+    
+#     if not has_outer_border:
+#         print("No outer border detected")
+    
+#     return has_outer_border
+       
+def extract_id_box(adaptive_thresh,image):
+    # Erode
+    kernel = np.ones((5,5 ), np.uint8)  # Adjust kernel size based on the gaps
+    erode = cv.erode(adaptive_thresh, kernel, iterations=1)
+    # Find contours
+    contours, _ = cv.findContours(erode, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE)
+    # Step 2: Filter contours based on aspect ratio and area
+    id_contour = None
+    min_area = 0
+    for contour in contours:
+        # Get bounding rectangle for each contour
+        x, y, w, h = cv.boundingRect(contour)
+        
+        # Calculate aspect ratio (width / height)
+        aspect_ratio = float(w) / h
+        
+        # Calculate area of the contour
+        area = cv.contourArea(contour)
+        
+        # Filter contours by aspect ratio and area
+        if 2.5 <= aspect_ratio <= 4 and area > min_area:
+            min_area = area
+            id_contour = contour  # Save the contour with the largest area and valid aspect ratio
+            
+    # If we found a valid ID contour, extract the ID box
+    if id_contour is not None:
+        # Get the bounding box of the largest valid contour
+        x, y, w, h = cv.boundingRect(id_contour)
+        # Extract the ID box from the image
+        id_box = image[y:y+h, x:x+w]
+        return id_box
+    else:
+            print("No ID box found")
+            return None  # Return None if no valid ID box was found
+# def ocr(image):
+   
+#     # Perform OCR
+#     pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+#     custom_config = r'--psm 6'
+#     text = pytesseract.image_to_string(image, config=custom_config)
+#     print(text)
+    
+
