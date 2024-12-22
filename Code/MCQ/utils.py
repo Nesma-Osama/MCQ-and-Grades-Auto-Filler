@@ -173,10 +173,6 @@ def finall_extract(image,gray):
             new_region.append( mcq)
     return new_region,id_contour,name_contour        
 #################################################################################
-def correct_id(image):
-     _, binary = cv.threshold(image, 170, 255, cv.THRESH_BINARY_INV)
-     contours,_=cv.findContours(binary,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
-     print(len(contours))
 def correct_id_mcq(image,list):
     image=cv.resize(image,(300,300))
     _, binary = cv.threshold(image, 160, 255, cv.THRESH_BINARY_INV)
@@ -197,10 +193,10 @@ def correct_id_mcq(image,list):
 ##split
 def split_answers_from_row(row_image):
     # Preprocess the row
-    _, binary_row = cv.threshold(row_image, 150, 255, cv.THRESH_BINARY_INV)
+    _, binary_row = cv.threshold(row_image, 130, 255, cv.THRESH_BINARY_INV)
     # Find contours for answers
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
-    binary = cv.morphologyEx(binary_row, cv.MORPH_CLOSE, kernel, iterations=2)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))
+    binary = cv.dilate(binary_row, kernel, iterations=3)
 
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
@@ -212,12 +208,12 @@ def split_answers_from_row(row_image):
     for contour in contours:
         x, y, w, h = cv.boundingRect(contour)
         # Crop the answer bubble
-        answer_part = row_image[y:y + h, x:x + w]
-        answer_parts.append(answer_part)
+        answer_part = binary_row[y:y + h, x:x + w]
+        answer_parts.append(cv.countNonZero(answer_part))
     print("anser",len(answer_parts))    
     # for idx, part in enumerate(answer_parts):
     #     cv.imshow(f"Question {idx + 1}", part)
-    cv.imshow("bin",binary)
+    cv.imshow("bin",binary_row)
     cv.waitKey(0)
     cv.destroyAllWindows()
     return answer_parts
@@ -225,7 +221,7 @@ def split_answers_from_row(row_image):
 def split_questions(image):
     # Preprocess the image
     _, binary = cv.threshold(image, 150, 255, cv.THRESH_BINARY_INV)
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (1, 3))
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
     binary = cv.morphologyEx(binary, cv.MORPH_CLOSE, kernel, iterations=2)
 
     # Find contours
@@ -261,8 +257,8 @@ def split_questions(image):
         max_y = max([y + h for x, y, w, h in row])
         # Crop the row and append to list
         question_part = image[min_y:max_y, min_x:max_x]
-        split_answers_from_row(question_part)
-        question_parts.append(question_part)
+        answers= split_answers_from_row(question_part)
+        question_parts.append(answers)
    
     return question_parts
     
