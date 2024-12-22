@@ -5,7 +5,7 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 import math
 from pytesseract import pytesseract
-
+bubble_size=17
 # Show Images
 
 def show_images(images,titles=None):
@@ -26,7 +26,8 @@ def show_images(images,titles=None):
     fig.set_size_inches(np.array(fig.get_size_inches()) * n_ims)
     plt.show()
 
-
+##########################################################################################
+##paper extraction and wrap
 # Find Biggest function
 def find_biggest_contour(contours):
     biggest=np.array([])
@@ -41,7 +42,6 @@ def find_biggest_contour(contours):
                 max_area=area
     return biggest,max_area            
             
-    
 # Reorder points
 def reorder(pts):
     # Sort the points based on their x and y coordinates
@@ -77,63 +77,192 @@ def wrapped_paper(width,height,points,image):
     # Warp the image
     warped_image = cv.warpPerspective(image, matrix, (width, height))
     return warped_image
-        
-# def if_has_outer_edge(contours, image):
-#     has_outer_border = False  # Initialize as False
-    
-#     for contour in contours:
-#         x, y, w, h = cv.boundingRect(contour)
-#         print(w,h)
-#         if w > 0.9 * image.shape[1] and h > 0.9 * image.shape[0]:
-#             print("Outer border detected")
-#             has_outer_border = True
-#             break  # Stop checking further contours as we've found the outer border
-    
-#     if not has_outer_border:
-#         print("No outer border detected")
-    
-#     return has_outer_border
-       
-def extract_id_box(adaptive_thresh,image):
-    # Erode
-    kernel = np.ones((5,5 ), np.uint8)  # Adjust kernel size based on the gaps
-    erode = cv.erode(adaptive_thresh, kernel, iterations=1)
-    # Find contours
-    contours, _ = cv.findContours(erode, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE)
-    # Step 2: Filter contours based on aspect ratio and area
-    id_contour = None
-    min_area = 0
-    for contour in contours:
-        # Get bounding rectangle for each contour
-        x, y, w, h = cv.boundingRect(contour)
-        
-        # Calculate aspect ratio (width / height)
-        aspect_ratio = float(w) / h
-        
-        # Calculate area of the contour
-        area = cv.contourArea(contour)
-        
-        # Filter contours by aspect ratio and area
-        if 2.5 <= aspect_ratio <= 4 and area > min_area:
-            min_area = area
-            id_contour = contour  # Save the contour with the largest area and valid aspect ratio
-            
-    # If we found a valid ID contour, extract the ID box
-    if id_contour is not None:
-        # Get the bounding box of the largest valid contour
-        x, y, w, h = cv.boundingRect(id_contour)
-        # Extract the ID box from the image
-        id_box = image[y:y+h, x:x+w]
-        return id_box
-    else:
-            print("No ID box found")
-            return None  # Return None if no valid ID box was found
+
 # def ocr(image):
-   
 #     # Perform OCR
 #     pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 #     custom_config = r'--psm 6'
 #     text = pytesseract.image_to_string(image, config=custom_config)
 #     print(text)
+########################################################################################
+#  Fox crop the inner of the box in the paper
+def cropp(image,contour):
+        x, y, w, h = cv.boundingRect(contour)
+        # Extract the ID box from the image
+        new_image = image[y+25:y+h, x+10:x+w-10]
+        return new_image    
+def cropp_box_image(image, width, height, blur_image):
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 7))  # Adjust kernel size
+    denoised = cv.morphologyEx(image, cv.MORPH_OPEN, kernel, iterations=4)
     
+    # Find contours after morphological operations
+    contours, _ = cv.findContours(denoised, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+    inner_box = None
+    
+    for i in contours:
+        area = cv.contourArea(i)
+        if 0.05 * width * height < area < 0.9 * width * height:  # Area constraints
+            peri = cv.arcLength(i, True)
+            approx = cv.approxPolyDP(i, 0.02 * peri, True)
+            if len(approx) == 4:  # If a quadrilateral is found
+                inner_box = i
+                break
 
+    if inner_box is not None:
+        # Crop the original and blurred images
+        cropped_image = cropp(image, inner_box)
+        cropped_blur_image = cropp(blur_image, inner_box)
+        #######################################
+        cropped_image[-5:, :] = 255  # Set last row of cropped_image to white
+        cropped_blur_image[-5:, :] = 255  # Set last row of cropped_blur_image to white
+        # Add a white box in all directions
+        box_size = 10  # Width of the white border in pixels (adjust as needed)
+        cropped_image = cv.copyMakeBorder(cropped_image, box_size, box_size, box_size, box_size, cv.BORDER_CONSTANT, value=255)
+        cropped_blur_image = cv.copyMakeBorder(cropped_blur_image, box_size, box_size, box_size, box_size, cv.BORDER_CONSTANT, value=255)
+
+        return cropped_image, cropped_blur_image
+    else:
+        # Add a white box to the original image
+        # Add a white box to the original image
+        image[-5:, :] = 255  # Set last row of cropped_image to white
+        blur_image[-5:, :] = 255  # Set last row of cropped_blur_image to white
+        ################################################
+        box_size = 10  # Width of the white border in pixels (adjust as needed)
+        image = cv.copyMakeBorder(image, box_size, box_size, box_size, box_size, cv.BORDER_CONSTANT, value=255)
+        blur_image = cv.copyMakeBorder(blur_image, box_size, box_size, box_size, box_size, cv.BORDER_CONSTANT, value=255)
+
+        return image, blur_image
+
+####################################################################
+## remove impluse noise        
+def replace_image_with_white(contours,output,width):
+    for contour in contours:       
+        if cv.contourArea(contour) < width:
+                cv.fillPoly(output, [contour], 255)
+####################################################################3
+#### extract name id mcq
+def finall_extract(image,gray):
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 5))  # Adjust kernel size
+    denoised = cv.morphologyEx(image, cv.MORPH_OPEN, kernel, iterations=4)
+    # Find contours after open
+    id_mcq_contours,_=cv.findContours(denoised,cv.RETR_TREE,cv.CHAIN_APPROX_SIMPLE)
+    ###
+    id_contour=None
+    name_contour=None
+    max_w=0
+    mcq_regions = []  # List to store regions along with their x-coordinates
+    for i in id_mcq_contours:
+        x, y, w, h = cv.boundingRect(i)  # x, y: top-left corner, w: width, h: height
+        if(w<0.9*image.shape[0] ):
+            if(w>20 and w<100):###mcq
+                    mcq_region=gray[y:y+h,x:x+w] 
+                    mcq_regions.append(((x,y),mcq_region))
+                    print(w)
+            else : 
+                if  w>max_w: 
+                    max_w=w
+                    name_contour=id_contour
+                    id_contour=gray[y:y+h,x:x+w] 
+                    
+     # Sort the MCQ regions by x-coordinate
+    mcq_regions_sorted = sorted(mcq_regions, key=lambda item: item[0][0])
+    new_region=[mcq_regions_sorted[0][1]]
+    # Display sorted MCQ regions
+    for idx,( (x,y), mcq) in enumerate(mcq_regions_sorted):
+        if( idx!=0 and np.abs(y-mcq_regions_sorted[0][0][0])>30):
+            new_region.append( mcq)
+    return new_region,id_contour,name_contour        
+#################################################################################
+def correct_id(image):
+     _, binary = cv.threshold(image, 170, 255, cv.THRESH_BINARY_INV)
+     contours,_=cv.findContours(binary,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
+     print(len(contours))
+def correct_id_mcq(image,list):
+    image=cv.resize(image,(300,300))
+    _, binary = cv.threshold(image, 160, 255, cv.THRESH_BINARY_INV)
+    #kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 1))  # Adjust kernel size
+    #denoised = cv.morphologyEx(binary, cv.MORPH_CLOSE, kernel, iterations=3)
+    contours,_=cv.findContours(binary,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
+    n_rows=len(contours)
+    print(n_rows)
+    rows=np.array_split(binary,n_rows,axis=0)
+    image_color = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
+    cv.drawContours(image_color, contours, -1, (0, 255, 0), 1)
+    cv.imshow("contours",binary)
+    # for i,row in enumerate(rows):
+    #     cv.imshow(f"{i}",row)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+##########################################
+##split
+def split_answers_from_row(row_image):
+    # Preprocess the row
+    _, binary_row = cv.threshold(row_image, 150, 255, cv.THRESH_BINARY_INV)
+    # Find contours for answers
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+    binary = cv.morphologyEx(binary_row, cv.MORPH_CLOSE, kernel, iterations=2)
+
+    contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+    # Sort contours by horizontal position (x-axis)
+    contours = sorted(contours, key=lambda c: cv.boundingRect(c)[0])
+
+    # Split the row into answers
+    answer_parts = []
+    for contour in contours:
+        x, y, w, h = cv.boundingRect(contour)
+        # Crop the answer bubble
+        answer_part = row_image[y:y + h, x:x + w]
+        answer_parts.append(answer_part)
+    print("anser",len(answer_parts))    
+    # for idx, part in enumerate(answer_parts):
+    #     cv.imshow(f"Question {idx + 1}", part)
+    cv.imshow("bin",binary)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+    return answer_parts
+        
+def split_questions(image):
+    # Preprocess the image
+    _, binary = cv.threshold(image, 150, 255, cv.THRESH_BINARY_INV)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (1, 3))
+    binary = cv.morphologyEx(binary, cv.MORPH_CLOSE, kernel, iterations=2)
+
+    # Find contours
+    contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+    # Sort contours by vertical position (y-axis)
+    contours = sorted(contours, key=lambda c: cv.boundingRect(c)[1])
+
+    # Group contours into rows based on their y-coordinates
+    rows = []
+    current_row = []
+    previous_y = -1
+    tolerance = 10  # Adjust based on spacing between rows
+
+    for contour in contours:
+        x, y, w, h = cv.boundingRect(contour)
+        if previous_y == -1 or abs(y - previous_y) <= tolerance:
+            current_row.append((x, y, w, h))
+        else:
+            rows.append(current_row)
+            current_row = [(x, y, w, h)]
+        previous_y = y
+
+    if current_row:
+        rows.append(current_row)
+
+    # Split the image into parts based on rows
+    question_parts = []
+    for row in rows:
+        min_x = min([x for x, y, w, h in row])
+        max_x = max([x + w for x, y, w, h in row])
+        min_y = min([y for x, y, w, h in row])
+        max_y = max([y + h for x, y, w, h in row])
+        # Crop the row and append to list
+        question_part = image[min_y:max_y, min_x:max_x]
+        split_answers_from_row(question_part)
+        question_parts.append(question_part)
+   
+    return question_parts
+    
