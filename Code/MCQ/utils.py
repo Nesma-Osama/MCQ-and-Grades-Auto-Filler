@@ -263,10 +263,11 @@ def split_questions(image,kernel_size,n_interation,space=5):
     question_parts = []
     for contour in contours:  # Iterate over each contour in the row
             x, y, w, h =cv.boundingRect( contour)  # Contour bounding box
+            if h>5:
             # Crop the individual contour
-            question_part = padded_image[y-space:y+h+space, x-space:x+w+space]        
-            answers = split_answers_from_row(question_part)
-            question_parts.append(answers)  
+                question_part = padded_image[y-space:y+h+space, x-space:x+w+space]        
+                answers = split_answers_from_row(question_part)
+                question_parts.append(answers)  
                
     return question_parts
     
