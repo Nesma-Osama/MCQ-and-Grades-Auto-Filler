@@ -192,73 +192,56 @@ def correct_id_mcq(image,list):
 ##########################################
 ##split
 def split_answers_from_row(row_image):
-    # Preprocess the row
-    _, binary_row = cv.threshold(row_image, 130, 255, cv.THRESH_BINARY_INV)
-    # Find contours for answers
+    # Preprocess the row image
+    _, binary_row = cv.threshold(row_image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
+     # Find contours in the thresholded binary image
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))
-    binary = cv.dilate(binary_row, kernel, iterations=3)
-
+    binary = cv.dilate(binary_row, kernel, iterations=2)
+    cv.imshow("black",binary)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
-    # Sort contours by horizontal position (x-axis)
+    # Sort contours by horizontal position
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[0])
-
-    # Split the row into answers
+    print(len(contours))
+    # Analyze intensity of each bubble
     answer_parts = []
     for contour in contours:
         x, y, w, h = cv.boundingRect(contour)
-        # Crop the answer bubble
-        answer_part = binary_row[y:y + h, x:x + w]
-        answer_parts.append(cv.countNonZero(answer_part))
-    print("anser",len(answer_parts))    
-    # for idx, part in enumerate(answer_parts):
-    #     cv.imshow(f"Question {idx + 1}", part)
-    cv.imshow("bin",binary_row)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-    return answer_parts
+        bubble_region = row_image[y:y+h, x:x+w]  # Crop the bubble from the original grayscale image
+        answer_parts.append(cv.countNonZero(bubble_region))
+    print("anser",len(answer_parts))   
+
         
 def split_questions(image):
     # Preprocess the image
-    _, binary = cv.threshold(image, 150, 255, cv.THRESH_BINARY_INV)
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+    padded_image = cv.copyMakeBorder(
+        image, 
+        20, 
+        20, 
+        20, 
+        20, 
+        borderType=cv.BORDER_CONSTANT, 
+        value=255  # Padding color (255 for white, 0 for black)
+    )
+    # Apply thresholding after padding
+    _, binary = cv.threshold(padded_image, 130, 255, cv.THRESH_BINARY_INV)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 3))
     binary = cv.morphologyEx(binary, cv.MORPH_CLOSE, kernel, iterations=2)
-
     # Find contours
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
     # Sort contours by vertical position (y-axis)
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[1])
-
-    # Group contours into rows based on their y-coordinates
-    rows = []
-    current_row = []
-    previous_y = -1
-    tolerance = 10  # Adjust based on spacing between rows
-
-    for contour in contours:
-        x, y, w, h = cv.boundingRect(contour)
-        if previous_y == -1 or abs(y - previous_y) <= tolerance:
-            current_row.append((x, y, w, h))
-        else:
-            rows.append(current_row)
-            current_row = [(x, y, w, h)]
-        previous_y = y
-
-    if current_row:
-        rows.append(current_row)
-
+    print(len(contours))
+    # Group contours into rows based on their y-coordinate
     # Split the image into parts based on rows
     question_parts = []
-    for row in rows:
-        min_x = min([x for x, y, w, h in row])
-        max_x = max([x + w for x, y, w, h in row])
-        min_y = min([y for x, y, w, h in row])
-        max_y = max([y + h for x, y, w, h in row])
-        # Crop the row and append to list
-        question_part = image[min_y:max_y, min_x:max_x]
-        answers= split_answers_from_row(question_part)
-        question_parts.append(answers)
-   
+    for contour in contours:  # Iterate over each contour in the row
+            x, y, w, h =cv.boundingRect( contour)  # Contour bounding box
+            # Crop the individual contour
+            question_part = padded_image[y-5:y+h+5, x-5:x+w+5]        
+            answers = split_answers_from_row(question_part)
+            question_parts.append(answers)  
+       
     return question_parts
     
