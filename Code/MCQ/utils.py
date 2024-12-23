@@ -195,22 +195,32 @@ def split_answers_from_row(row_image):
     # Preprocess the row image
     _, binary_row = cv.threshold(row_image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
      # Find contours in the thresholded binary image
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))
-    binary = cv.dilate(binary_row, kernel, iterations=2)
-    cv.imshow("black",binary)
+      # Optional morphological operations
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))  # Adjust kernel size
+    binary = cv.morphologyEx(binary_row, cv.MORPH_CLOSE, kernel)
+    #cv.imshow("black",binary)
     cv.waitKey(0)
     cv.destroyAllWindows()
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     # Sort contours by horizontal position
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[0])
-    print(len(contours))
+    #print(len(contours))
     # Analyze intensity of each bubble
+   # Analyze intensity of each bubble
     answer_parts = []
     for contour in contours:
         x, y, w, h = cv.boundingRect(contour)
-        bubble_region = row_image[y:y+h, x:x+w]  # Crop the bubble from the original grayscale image
-        answer_parts.append(cv.countNonZero(bubble_region))
-    print("anser",len(answer_parts))   
+
+        # Crop the bubble region from the original grayscale image
+        bubble_region = row_image[y:y+h, x:x+w]
+
+        # Calculate the mean intensity of the bubble region
+        mean_intensity = cv.mean(bubble_region)[0]
+
+        # Append the mean intensity to the answer list
+        answer_parts.append(mean_intensity)
+    print("anser",answer_parts)   
+    return answer_parts
 
         
 def split_questions(image):
