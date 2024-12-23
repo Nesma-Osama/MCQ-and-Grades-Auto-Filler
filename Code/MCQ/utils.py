@@ -211,7 +211,7 @@ def split_answers_from_row(row_image):
     answer_parts = []
     for contour in contours:
         x, y, w, h = cv.boundingRect(contour)
-        # Crop the answer bubble
+        # Crop the answer bubble and append to list
         answer_part = row_image[y:y + h, x:x + w]
         answer_parts.append(answer_part)
     print("anser",len(answer_parts))    
