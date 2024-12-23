@@ -212,7 +212,7 @@ def split_answers_from_row(row_image):
     _, binary_row = cv.threshold(row_image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
      # Find contours in the thresholded binary image
       # Optional morphological operations
-    cv.imshow("black1",binary_row)  
+    #cv.imshow("black1",binary_row)  
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))  # Adjust kernel size
     binary = cv.morphologyEx(binary_row, cv.MORPH_CLOSE, kernel)
  
