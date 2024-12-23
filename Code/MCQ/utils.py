@@ -219,7 +219,7 @@ def split_answers_from_row(row_image):
 
         # Append the mean intensity to the answer list
         answer_parts.append(mean_intensity)
-    print("anser",answer_parts)   
+    #print("anser",answer_parts)   
     return answer_parts
 
         
