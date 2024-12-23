@@ -210,7 +210,6 @@ def split_answers_from_row(row_image):
     answer_parts = []
     for contour in contours:
         x, y, w, h = cv.boundingRect(contour)
-
         # Crop the bubble region from the original grayscale image
         bubble_region = row_image[y:y+h, x:x+w]
 
