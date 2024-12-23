@@ -21,6 +21,7 @@ This project assists Teaching Assistants (TAs) and Professors in automating the 
      - Empty cells remain empty.
      - Stacked vertical or horizontal lines converted into numeric equivalents.
      - `?` → Empty cell with a red background.
+## Features
 
 3. **Outputs Structured Excel Sheets**:
    - Creates a final Excel file replicating the original grade sheet but in a digital format.
@@ -62,3 +63,7 @@ This project assists Teaching Assistants (TAs) and Professors in automating the 
 Install dependencies using:
 ```bash
 pip install -r requirements.txt
+```
+Run the UI:
+```bash
+pyhton3 MCQ-and-Grades-Auto-Filler\Code\MCQ\modular_mcq.py 
