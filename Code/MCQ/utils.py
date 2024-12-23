@@ -77,13 +77,6 @@ def wrapped_paper(width,height,points,image):
     # Warp the image
     warped_image = cv.warpPerspective(image, matrix, (width, height))
     return warped_image
-
-# def ocr(image):
-#     # Perform OCR
-#     pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-#     custom_config = r'--psm 6'
-#     text = pytesseract.image_to_string(image, config=custom_config)
-#     print(text)
 ########################################################################################
 #  Fox crop the inner of the box in the paper
 def cropp(image,contour):
@@ -157,8 +150,6 @@ def finall_extract(image,gray):
             if(w>20 and w<100):###mcq
                     mcq_region=gray[y:y+h,x:x+w] 
                     mcq_regions.append(((x,y),mcq_region))
-                    #
-                    # print(w)
             else : 
                 if  w>max_w: 
                     max_w=w
@@ -190,7 +181,6 @@ def correct_id_mcq(id):
     binary = cv.dilate(binary, kernel, iterations=3)
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[1])
-    #print("contours",len(contours))
     # Group contours into rows based on their y-coordinate
     # Split the image into parts based on rows
     question_parts = []
@@ -200,10 +190,7 @@ def correct_id_mcq(id):
             # Crop the individual contour
                 question_part = padded_image[y:y+h, x:x+w]        
                 answers = split_answers_from_row(question_part)
-                question_parts.append(answers)  
-                #cv.imshow("x+y",question_part)
-    #cv.waitKey(0)
-    #cv.destroyAllWindows()          
+                question_parts.append(answers)           
     return question_parts
 ##########################################
 ##split
@@ -212,14 +199,12 @@ def split_answers_from_row(row_image):
     _, binary_row = cv.threshold(row_image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
      # Find contours in the thresholded binary image
       # Optional morphological operations
-    #cv.imshow("black1",binary_row)  
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))  # Adjust kernel size
     binary = cv.morphologyEx(binary_row, cv.MORPH_CLOSE, kernel)
  
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     # Sort contours by horizontal position
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[0])
-    #print(len(contours))
     # Analyze intensity of each bubble
    # Analyze intensity of each bubble
     answer_parts = []
@@ -230,23 +215,21 @@ def split_answers_from_row(row_image):
         # Calculate the mean intensity of the bubble region
         mean_intensity = cv.mean(bubble_region)[0]
         # Append the mean intensity to the answer list
-        answer_parts.append(mean_intensity)
-        #cv.imshow("black",bubble_region)
-    #print("anser",answer_parts)  
+        answer_parts.append(mean_intensity) 
     cv.waitKey(0)
     cv.destroyAllWindows() 
     return answer_parts
 
-        
-def split_questions(image,kernel_size,n_interation,space=5):
+
+def split_questions(image, kernel_size, n_interation, space=5):
     # Preprocess the image
     padded_image = cv.copyMakeBorder(
-        image, 
-        20, 
-        20, 
-        20, 
-        20, 
-        borderType=cv.BORDER_CONSTANT, 
+        image,
+        20,
+        20,
+        20,
+        20,
+        borderType=cv.BORDER_CONSTANT,
         value=255  # Padding color (255 for white, 0 for black)
     )
     # Apply thresholding after padding
@@ -257,17 +240,15 @@ def split_questions(image,kernel_size,n_interation,space=5):
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     # Sort contours by vertical position (y-axis)
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[1])
-    #print("contours",len(contours))
     # Group contours into rows based on their y-coordinate
     # Split the image into parts based on rows
     question_parts = []
     for contour in contours:  # Iterate over each contour in the row
-            x, y, w, h =cv.boundingRect( contour)  # Contour bounding box
-            if h>5:
+        x, y, w, h = cv.boundingRect(contour)  # Contour bounding box
+        if h > 5:
             # Crop the individual contour
-                question_part = padded_image[y-space:y+h+space, x-space:x+w+space]        
-                answers = split_answers_from_row(question_part)
-                question_parts.append(answers)  
-               
+            question_part = padded_image[y - space:y + h + space, x - space:x + w + space]
+            answers = split_answers_from_row(question_part)
+            question_parts.append(answers)
+
     return question_parts
-    
