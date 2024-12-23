@@ -237,16 +237,16 @@ def split_answers_from_row(row_image):
     cv.destroyAllWindows() 
     return answer_parts
 
-        
-def split_questions(image,kernel_size,n_interation,space=5):
+
+def split_questions(image, kernel_size, n_interation, space=5):
     # Preprocess the image
     padded_image = cv.copyMakeBorder(
-        image, 
-        20, 
-        20, 
-        20, 
-        20, 
-        borderType=cv.BORDER_CONSTANT, 
+        image,
+        20,
+        20,
+        20,
+        20,
+        borderType=cv.BORDER_CONSTANT,
         value=255  # Padding color (255 for white, 0 for black)
     )
     # Apply thresholding after padding
@@ -257,17 +257,16 @@ def split_questions(image,kernel_size,n_interation,space=5):
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     # Sort contours by vertical position (y-axis)
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[1])
-    #print("contours",len(contours))
+    # print("contours",len(contours))
     # Group contours into rows based on their y-coordinate
     # Split the image into parts based on rows
     question_parts = []
     for contour in contours:  # Iterate over each contour in the row
-            x, y, w, h =cv.boundingRect( contour)  # Contour bounding box
-            if h>5:
+        x, y, w, h = cv.boundingRect(contour)  # Contour bounding box
+        if h > 5:
             # Crop the individual contour
-                question_part = padded_image[y-space:y+h+space, x-space:x+w+space]        
-                answers = split_answers_from_row(question_part)
-                question_parts.append(answers)  
-               
+            question_part = padded_image[y - space:y + h + space, x - space:x + w + space]
+            answers = split_answers_from_row(question_part)
+            question_parts.append(answers)
+
     return question_parts
-    

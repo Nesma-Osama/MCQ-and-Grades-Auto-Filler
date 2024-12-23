@@ -5,9 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="019a2687-f375-4f61-803f-eeb30b23397c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Code/MCQ/modular_mcq.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Code/MCQ/Total_code.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Code/MCQ/Total_code.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Data/bubble sheet/ebb35754-124c-4e35-8ba6-8c6056823e3a.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Code/MCQ/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/Code/MCQ/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,7 +89,7 @@
       <workItem from="1734921157131" duration="2748000" />
       <workItem from="1734956047684" duration="129000" />
       <workItem from="1734956192042" duration="2005000" />
-      <workItem from="1734964600574" duration="13243000" />
+      <workItem from="1734964600574" duration="14147000" />
     </task>
     <servers />
   </component>
@@ -98,7 +97,7 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/MCQ_and_Grades_Auto_Filler$modular_mcq.coverage" NAME="modular_mcq Coverage Results" MODIFIED="1734978871163" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Code/MCQ" />
+    <SUITE FILE_PATH="coverage/MCQ_and_Grades_Auto_Filler$modular_mcq.coverage" NAME="modular_mcq Coverage Results" MODIFIED="1734979122283" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Code/MCQ" />
     <SUITE FILE_PATH="coverage/MCQ_and_Grades_Auto_Filler$main.coverage" NAME="main Coverage Results" MODIFIED="1734923598917" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Bubble_sheet_corrector" />
     <SUITE FILE_PATH="coverage/MCQ_and_Grades_Auto_Filler$modular_mcq_corrector.coverage" NAME="modular_mcq_corrector Coverage Results" MODIFIED="1734974119626" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Code/MCQ" />
   </component>
