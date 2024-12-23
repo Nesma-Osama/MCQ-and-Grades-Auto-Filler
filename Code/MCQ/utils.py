@@ -157,7 +157,8 @@ def finall_extract(image,gray):
             if(w>20 and w<100):###mcq
                     mcq_region=gray[y:y+h,x:x+w] 
                     mcq_regions.append(((x,y),mcq_region))
-                    print(w)
+                    #
+                    # print(w)
             else : 
                 if  w>max_w: 
                     max_w=w
@@ -173,96 +174,100 @@ def finall_extract(image,gray):
             new_region.append( mcq)
     return new_region,id_contour,name_contour        
 #################################################################################
-def correct_id(image):
-     _, binary = cv.threshold(image, 170, 255, cv.THRESH_BINARY_INV)
-     contours,_=cv.findContours(binary,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
-     print(len(contours))
-def correct_id_mcq(image,list):
-    image=cv.resize(image,(300,300))
-    _, binary = cv.threshold(image, 160, 255, cv.THRESH_BINARY_INV)
-    #kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 1))  # Adjust kernel size
-    #denoised = cv.morphologyEx(binary, cv.MORPH_CLOSE, kernel, iterations=3)
-    contours,_=cv.findContours(binary,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
-    n_rows=len(contours)
-    print(n_rows)
-    rows=np.array_split(binary,n_rows,axis=0)
-    image_color = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
-    cv.drawContours(image_color, contours, -1, (0, 255, 0), 1)
-    cv.imshow("contours",binary)
-    # for i,row in enumerate(rows):
-    #     cv.imshow(f"{i}",row)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+def correct_id_mcq(id):
+    padded_image = cv.copyMakeBorder(
+        id, 
+        20, 
+        20, 
+        20, 
+        20, 
+        borderType=cv.BORDER_CONSTANT, 
+        value=255  # Padding color (255 for white, 0 for black)
+    )
+    # Apply thresholding after padding
+    _, binary = cv.threshold(padded_image, 130, 255, cv.THRESH_BINARY_INV)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (8,1))
+    binary = cv.dilate(binary, kernel, iterations=3)
+    contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours = sorted(contours, key=lambda c: cv.boundingRect(c)[1])
+    #print("contours",len(contours))
+    # Group contours into rows based on their y-coordinate
+    # Split the image into parts based on rows
+    question_parts = []
+    for contour in contours:  # Iterate over each contour in the row
+            x, y, w, h =cv.boundingRect( contour)  # Contour bounding box
+            if(h>5):
+            # Crop the individual contour
+                question_part = padded_image[y:y+h, x:x+w]        
+                answers = split_answers_from_row(question_part)
+                question_parts.append(answers)  
+                #cv.imshow("x+y",question_part)
+    #cv.waitKey(0)
+    #cv.destroyAllWindows()          
+    return question_parts
 ##########################################
 ##split
 def split_answers_from_row(row_image):
-    # Preprocess the row
-    _, binary_row = cv.threshold(row_image, 150, 255, cv.THRESH_BINARY_INV)
-    # Find contours for answers
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
-    binary = cv.morphologyEx(binary_row, cv.MORPH_CLOSE, kernel, iterations=2)
-
+    # Preprocess the row image
+    _, binary_row = cv.threshold(row_image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
+     # Find contours in the thresholded binary image
+      # Optional morphological operations
+    cv.imshow("black1",binary_row)  
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))  # Adjust kernel size
+    binary = cv.morphologyEx(binary_row, cv.MORPH_CLOSE, kernel)
+ 
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
-    # Sort contours by horizontal position (x-axis)
+    # Sort contours by horizontal position
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[0])
-
-    # Split the row into answers
+    #print(len(contours))
+    # Analyze intensity of each bubble
+   # Analyze intensity of each bubble
     answer_parts = []
     for contour in contours:
         x, y, w, h = cv.boundingRect(contour)
-        # Crop the answer bubble and append to list
-        answer_part = row_image[y:y + h, x:x + w]
-        answer_parts.append(answer_part)
-    print("anser",len(answer_parts))    
-    # for idx, part in enumerate(answer_parts):
-    #     cv.imshow(f"Question {idx + 1}", part)
-    cv.imshow("bin",binary)
+        # Crop the bubble region from the original grayscale image
+        bubble_region = row_image[y:y+h, x:x+w]
+        # Calculate the mean intensity of the bubble region
+        mean_intensity = cv.mean(bubble_region)[0]
+        # Append the mean intensity to the answer list
+        answer_parts.append(mean_intensity)
+        #cv.imshow("black",bubble_region)
+    #print("anser",answer_parts)  
     cv.waitKey(0)
-    cv.destroyAllWindows()
+    cv.destroyAllWindows() 
     return answer_parts
-        
-def split_questions(image):
-    # Preprocess the image
-    _, binary = cv.threshold(image, 150, 255, cv.THRESH_BINARY_INV)
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (1, 3))
-    binary = cv.morphologyEx(binary, cv.MORPH_CLOSE, kernel, iterations=2)
 
+        
+def split_questions(image,kernel_size,n_interation,space=5):
+    # Preprocess the image
+    padded_image = cv.copyMakeBorder(
+        image, 
+        20, 
+        20, 
+        20, 
+        20, 
+        borderType=cv.BORDER_CONSTANT, 
+        value=255  # Padding color (255 for white, 0 for black)
+    )
+    # Apply thresholding after padding
+    _, binary = cv.threshold(padded_image, 130, 255, cv.THRESH_BINARY_INV)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
+    binary = cv.morphologyEx(binary, cv.MORPH_CLOSE, kernel, iterations=n_interation)
     # Find contours
     contours, _ = cv.findContours(binary, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
     # Sort contours by vertical position (y-axis)
     contours = sorted(contours, key=lambda c: cv.boundingRect(c)[1])
-
-    # Group contours into rows based on their y-coordinates
-    rows = []
-    current_row = []
-    previous_y = -1
-    tolerance = 10  # Adjust based on spacing between rows
-
-    for contour in contours:
-        x, y, w, h = cv.boundingRect(contour)
-        if previous_y == -1 or abs(y - previous_y) <= tolerance:
-            current_row.append((x, y, w, h))
-        else:
-            rows.append(current_row)
-            current_row = [(x, y, w, h)]
-        previous_y = y
-
-    if current_row:
-        rows.append(current_row)
-
+    #print("contours",len(contours))
+    # Group contours into rows based on their y-coordinate
     # Split the image into parts based on rows
     question_parts = []
-    for row in rows:
-        min_x = min([x for x, y, w, h in row])
-        max_x = max([x + w for x, y, w, h in row])
-        min_y = min([y for x, y, w, h in row])
-        max_y = max([y + h for x, y, w, h in row])
-        # Crop the row and append to list
-        question_part = image[min_y:max_y, min_x:max_x]
-        split_answers_from_row(question_part)
-        question_parts.append(question_part)
-   
+    for contour in contours:  # Iterate over each contour in the row
+            x, y, w, h =cv.boundingRect( contour)  # Contour bounding box
+            if h>5:
+            # Crop the individual contour
+                question_part = padded_image[y-space:y+h+space, x-space:x+w+space]        
+                answers = split_answers_from_row(question_part)
+                question_parts.append(answers)  
+               
     return question_parts
     
